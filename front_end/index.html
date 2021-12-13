@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首页</title>
+    <link rel="stylesheet" href="./css/index.css">
+    <link rel="stylesheet" href="./css/iconfont.css">
+
+</head>
+
+<body>
+    <div class="container">
+
+        <div class="main">
+            <div class="top">
+                <div class="reload">
+                    <div class="username">
+                        <p style="display: inline-block;" class="name">
+
+                        </p>
+                        <span><i class="iconfont  icon-reload"></i></span>
+                    </div>
+                </div>
+                <div class="search">
+                    <span><i class="iconfont  icon-sousuoxiao"></i></span>
+                    <input type="text" placeholder="skr~">
+                </div>
+            </div>
+            <div class="head">
+                <div class="text">
+                    <textarea id="textcontent"></textarea>
+                </div>
+                <button id="btn">发送</button>
+            </div>
+            <ul class="content">
+                <!-- <li>
+                    <p class="date"> 2748937493 
+                        <span>...</span> 
+                       
+                    </p>
+                    <p class="content">${note.text}</p>
+                </li> -->
+            </ul>
+        </div>
+
+    </div>
+</body>
+<script src="https://cdn.bootcdn.net/ajax/libs/axios/0.21.1/axios.min.js"></script>
+<script>
+    let regBtn = document.getElementById('btn');
+    let ulBox = document.querySelector('.content');
+    let nameBox = document.querySelector('.name');
+    let searchBox = document.querySelector('.search')
+
+    //得到传过来的用户名
+    let args = location.href.split("?")[1];
+    let username = new URLSearchParams(args).get("username");
+    nameBox.textContent = username;
+
+    // 发送请求渲染
+    async function renderData() {
+        let res = await axios({
+            method: 'GET',
+            url: `http://127.0.0.1:3000/users/notes?username=${username}`
+        })
+
+
+        if (res.data.code == 1) {
+
+            let textArr = res.data.notesData;
+            console.log(textArr);
+            textArr.reverse();
+            console.log(textArr);
+            let html = '';
+            textArr.forEach((note) => {
+                html += `
+                 <li id="${note.timestamp}">
+                    <p class="date">${toLocaleString(note.timestamp)} <span class="delete">删除</span> </p>
+                    <p class="content">${note.text}</p>
+                </li>
+    `
+                ulBox.innerHTML = html;
+
+            })
+        }
+    }
+    renderData();
+
+    //点击添加
+    btn.onclick = async function () {
+
+        let timestamp = new Date().getTime();
+        // 将毫秒转为正确时间格式
+        let nowDate = toLocaleString(timestamp);
+        let tx = document.getElementById('textcontent');
+        let text = tx.value;
+        if (!text) {
+            return;
+        }
+        //添加数据
+        let res = await axios({
+            method: 'POST',
+            url: 'http://127.0.0.1:3000/users/notes/add',
+            data: { text, timestamp, username }
+        });
+
+        if (res.data.code === 1) {
+            let { text, timestamp } = res.data.noteData;
+            let html = `
+                    <p class="date">${toLocaleString(timestamp)} <span class="delete">删除</span> </p>
+                    <p class="content">${text}</p>
+                `
+            let li = document.createElement('li');
+            li.innerHTML = html;
+            li.id = timestamp;
+            ulBox.prepend(li);
+            tx.value = ''
+        };
+    };
+
+
+
+    let deleteArr = ulBox.querySelectorAll('li');
+
+
+    ulBox.onclick = async function (e) {
+        let target = e.target;
+        console.log(target.className);
+        if (target.className == 'delete') {
+            let li = target.closest('li');
+            li.remove();
+            let id = li.id;
+            //把id传回后台，删除
+            let res = await axios({
+                method: 'POST',
+                url: 'http://127.0.0.1:3000/users/notes/delete',
+                data: { id }
+            });
+        }
+
+    }
+
+
+    //搜索功能
+    searchBox.addEventListener('change', async function (e) {
+        console.log('change');
+
+        console.log('e', e.target.value);
+        let words = e.target.value;
+        let res = await axios({
+            method: 'POST',
+            url: `http://127.0.0.1:3000/users/notes/search`,
+            data: { words, username }
+        })
+
+        if (res.data.code == 1) {
+
+            let textArr = res.data.notesData;
+            let html = '';
+            if (textArr.length == 0) {
+                ulBox.innerHTML = "";
+
+            }
+            textArr.forEach((note) => {
+                html += `
+                 <li id="${note.timestamp}">
+                    <p class="date">${toLocaleString(note.timestamp)} <span class="delete">删除</span> </p>
+                    <p class="content">${note.text}</p>
+                </li>
+    `
+                ulBox.innerHTML = html;
+
+            })
+        }
+
+        if (e.target.value == '') {
+            console.log('清空');
+            renderData();
+            return;
+        }
+    })
+    //转换时间格式
+    toLocaleString = function (num) {
+        function addZero(num) {
+            return num < 10 ? "0" + num : num;
+        }
+        let d = new Date(num);
+        // 按自定义拼接格式返回
+        return d.getFullYear() + "-" + addZero(d.getMonth() + 1) + "-" + addZero(d.getDate()) + " " +
+            addZero(d.getHours()) + ":" + addZero(d.getMinutes()) + ":" + addZero(d.getSeconds());
+    };
+
+</script>
+
+</html>

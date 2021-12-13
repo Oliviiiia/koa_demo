@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册账号</title>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display:flex;
+            justify-content: center;
+            align-items: center;
+            background-color: whitesmoke;
+        }
+        ul{
+            list-style-type: none;
+        }
+        .box{
+            margin-top: 300px;
+        }
+        h3{
+            text-align: center;
+        }
+        .box input{
+            height:30px;
+            width:250px;
+            margin :5px;
+            padding: 5px 10px;
+            background-color: white;
+            border: none;
+        }
+        #btn{
+            width:270px;
+            background-color: #409EFF
+        }
+        a{
+            color: #409EFF;
+        }
+        p{
+            text-align:center;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h3>注册</h3>
+        <ul>
+            <li><input class="username" type="text" placeholder='用户名'></li>
+            <li> <input class = "password" type="password" placeholder='最少8位，包含大小写和特殊字符'></li>
+            <li> <input class = "email" type="email" placeholder="邮箱"></li>
+            <li> <input  type="button" value="注册" id="btn"></li>
+           
+        </ul>
+        <p>已有有账号？去<a href="./login.html">登录</a></p>
+        <!-- <button type="submit" id="btn">点击提交</button> -->
+    </div>
+</body>
+<script src="https://cdn.bootcdn.net/ajax/libs/axios/0.21.1/axios.min.js"></script>
+<script>
+    let regBtn = document.getElementById('btn');
+    btn.onclick =async function(){
+        let username = document.querySelector('.username').value;
+        let password = document.querySelector('.password').value;
+        let email = document.querySelector('.email').value;
+        console.log(username,password,email);
+
+        let res = await axios({
+            method: 'POST',
+            url: 'http://127.0.0.1:3000/users/register',
+            data: {username,password,email}
+        })
+
+        if (res.data.code === 1) {
+            
+            location.href = `./login.html`;
+        }else{
+            alert(res.data.message);
+        }
+
+    }
+</script>
+</html>
