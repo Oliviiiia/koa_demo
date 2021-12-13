@@ -36,13 +36,8 @@
                 <button id="btn">发送</button>
             </div>
             <ul class="content">
-                <!-- <li>
-                    <p class="date"> 2748937493 
-                        <span>...</span> 
-                       
-                    </p>
-                    <p class="content">${note.text}</p>
-                </li> -->
+
+
             </ul>
         </div>
 
@@ -60,41 +55,36 @@
     let username = new URLSearchParams(args).get("username");
     nameBox.textContent = username;
 
+    renderData();
     // 发送请求渲染
     async function renderData() {
         let res = await axios({
             method: 'GET',
             url: `http://127.0.0.1:3000/users/notes?username=${username}`
         })
-
-
         if (res.data.code == 1) {
-
-            let textArr = res.data.notesData;
-            console.log(textArr);
+            let textArr = [];
+            textArr = res.data.data;
             textArr.reverse();
-            console.log(textArr);
             let html = '';
             textArr.forEach((note) => {
                 html += `
-                 <li id="${note.timestamp}">
-                    <p class="date">${toLocaleString(note.timestamp)} <span class="delete">删除</span> </p>
-                    <p class="content">${note.text}</p>
-                </li>
-    `
+                <div>
+                    <li id="${note._id}">
+                    <p class="date">${toLocaleString(note.createdAt)} <span class="delete">删除</span> </p>
+                    <p class="content">${note.text} <span class="edit">编辑</span></p>
+                    </li>
+
+                </div>`
                 ulBox.innerHTML = html;
 
             })
         }
     }
-    renderData();
+
 
     //点击添加
     btn.onclick = async function () {
-
-        let timestamp = new Date().getTime();
-        // 将毫秒转为正确时间格式
-        let nowDate = toLocaleString(timestamp);
         let tx = document.getElementById('textcontent');
         let text = tx.value;
         if (!text) {
@@ -104,34 +94,34 @@
         let res = await axios({
             method: 'POST',
             url: 'http://127.0.0.1:3000/users/notes/add',
-            data: { text, timestamp, username }
+            data: { text, username }
         });
 
         if (res.data.code === 1) {
-            let { text, timestamp } = res.data.noteData;
+            let { text, createdAt, _id } = res.data.noteData;
             let html = `
-                    <p class="date">${toLocaleString(timestamp)} <span class="delete">删除</span> </p>
-                    <p class="content">${text}</p>
-                `
-            let li = document.createElement('li');
-            li.innerHTML = html;
-            li.id = timestamp;
-            ulBox.prepend(li);
+                <li id="${_id}">
+                    <p class="date">${toLocaleString(createdAt)} <span class="delete">删除</span> </p>
+                    <p class="content">${text} <span class="edit">编辑</span></p>
+                </li> `
+            let div = document.createElement('div');
+            div.innerHTML = html;
+            ulBox.prepend(div);
             tx.value = ''
         };
     };
 
 
-
-    let deleteArr = ulBox.querySelectorAll('li');
-
-
+    //事件委托：删除和编辑
     ulBox.onclick = async function (e) {
         let target = e.target;
-        console.log(target.className);
+        let div = target.closest('div');
+        let li = target.closest('li');
+        console.log('li',li.firstChild);
+
+        //删除
         if (target.className == 'delete') {
-            let li = target.closest('li');
-            li.remove();
+            time = target.closest('p').textContent;
             let id = li.id;
             //把id传回后台，删除
             let res = await axios({
@@ -139,6 +129,71 @@
                 url: 'http://127.0.0.1:3000/users/notes/delete',
                 data: { id }
             });
+            if (res.data.code == 1) {
+                li.remove();
+            }
+        }
+        //编辑
+        if (target.className == 'edit') {
+            let li = target.closest('li');
+             
+            let _id = li.id;
+            //记录下时间
+            let time = li.firstElementChild.firstChild.textContent;
+            
+            let p = target.closest('p');
+            //记录text
+            let text = p.firstChild.textContent;
+            console.log(text);
+            // li.innerHTML = '';
+            let html = '';
+            html = `
+            <li id="${_id}">
+                    <input type="text" class="edit-text" value=${text}>
+                    <button class="cancel">取消</button>
+                    <button class="confirm">完成</button>
+            </li>
+                 `
+             div.innerHTML = html;
+            let newLi = div.querySelector('li')
+            let cancelBtn = newLi.querySelector(".cancel");
+            //取消
+            cancelBtn.onclick = function (e) {
+                e.stopPropagation();
+                let html = `
+                <li id="${_id}">
+                    <p class="date">${time} <span class="delete">删除</span> </p>
+                    <p class="content">${text} <span class="edit">编辑</span></p>
+                </li> `
+                div.innerHTML = html;
+            }
+
+            let confirmBtn = newLi.querySelector(".confirm");
+            console.log('confirmBtn', confirmBtn);
+            //确认更新
+            confirmBtn.onclick = async function (e) {
+                let input = newLi.querySelector('input');
+                let value = input.value;
+                console.log('value', value);
+                //把id和值传回后台，更新
+                let res = await axios({
+                    method: 'POST',
+                    url: 'http://127.0.0.1:3000/users/notes/update',
+                    data: { _id, value }
+                });
+                console.log("res",res);
+                if (res.data.code == 1) {
+                    let { text, createdAt } = res.data.data;
+                    let html = `
+                    <li id="${_id}">
+                      <p class="date">${toLocaleString(createdAt)} <span class="delete">删除</span> </p>
+                      <p class="content">${text}  <span class="edit">编辑</span> </p>
+                    </li>
+                    `
+                    div.innerHTML = html;
+                }
+
+            }
         }
 
     }
@@ -157,7 +212,6 @@
         })
 
         if (res.data.code == 1) {
-
             let textArr = res.data.notesData;
             let html = '';
             if (textArr.length == 0) {
@@ -166,8 +220,8 @@
             }
             textArr.forEach((note) => {
                 html += `
-                 <li id="${note.timestamp}">
-                    <p class="date">${toLocaleString(note.timestamp)} <span class="delete">删除</span> </p>
+                 <li id="${note._id}">
+                    <p class="date">${toLocaleString(note.createdAt)}</p> <span class="delete">删除</span> </p>
                     <p class="content">${note.text}</p>
                 </li>
     `

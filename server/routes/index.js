@@ -8,9 +8,10 @@ router.post('/users/register', userController.register)
       .post('/users/login', userController.login);
 
 //笔记管理
-router.get('/users/notes', notesController.getData)
+router.get('/users/notes', notesController.getAllData)
       .post('/users/notes/add', notesController.add)
       .post('/users/notes/delete', notesController.delete)
+      .post('/users/notes/update',notesController.update)
       .post('/users/notes/search', notesController.search)
 
 
